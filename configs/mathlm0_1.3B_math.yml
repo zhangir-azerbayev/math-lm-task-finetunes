@@ -1,0 +1,11 @@
+task: "math"
+model_load_path: "/fsx/mathlm0/proof-pile-1.3B-hf"
+model_save_path: "/fsx/mathlm0/proof-pile-1.3B-math"
+
+lr: 2.e-5
+lr_schedule: "cosine"
+warmup_epochs: 0.5
+epochs: 10
+batch_size_per_device: 16 # want effective batch size of 32 across experiments
+weight_decay: 0.01
+
