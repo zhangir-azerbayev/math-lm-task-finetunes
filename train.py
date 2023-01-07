@@ -10,6 +10,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingA
 from datasets import load_dataset
 
 from transformers import AdamW
+from transformers import get_cosine_schedule_with_warmup
 
 from transformers.trainer_pt_utils import get_parameter_names
 
@@ -26,7 +27,8 @@ class HFTrainSet(torch.utils.data.Dataset):
         encoded = self.tokenizer(text, 
                 max_length = self.max_length, 
                 padding='max_length', 
-                return_tensors='pt'
+                return_tensors='pt', 
+                truncation=True, 
                 )
 
         ids = encoded['input_ids'].squeeze()
@@ -83,20 +85,21 @@ def main():
         cfg = yaml.safe_load(cfg_text)
 
     log_dir = os.path.join(cfg["log_dir"], cfg["experiment_name"])
-    pathlib.Path(log_dir).mkdir(parents=True, exist_ok=False)
 
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_load_path"])
+    tokenizer.add_special_tokens({"eos_token": "<|endoftext|>"})
     tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM(cfg["model_load_path"])
+    model = AutoModelForCausalLM.from_pretrained(cfg["model_load_path"])
+    model.resize_token_embeddings(len(tokenizer))
 
     match cfg["task"]: 
         case "math": 
             hf_data = create_math_train()
-            data = HFTrainset(hf_data, tokenizer, cfg["max_length"])
+            data = HFTrainSet(hf_data, tokenizer, cfg["max_length"])
         case "gsm8k": 
             hf_data = create_gsm8k_train()
-            data = HFTrainset(hf_data, tokenizer, cfg["max_length"])
+            data = HFTrainSet(hf_data, tokenizer, cfg["max_length"])
         case _ : 
             raise NameError(f"task is not defined")
 
@@ -116,28 +119,30 @@ def main():
         },
     ]
 
-    optimizer = AdamW(optimizer_group_parameters, lr=cfg["lr"])
+    optimizer = AdamW(optimizer_grouped_parameters, lr=cfg["lr"])
 
     match cfg["lr_schedule"]:
         case "cosine": 
-            scheduler = transformers.get_cosine_schedule_with_warmup(
+            scheduler = get_cosine_schedule_with_warmup(
                     optimizer, 
                     cfg["warmup_steps"], 
                     cfg["train_steps"]
                     )
         case _ : raise NameError("Unrecognized lr schedule")
 
-    with open(os.path.join(cfg["log_dir"], "config.yml"), "w") as f: 
+    pathlib.Path(log_dir).mkdir(parents=True, exist_ok=False)
+    with open(os.path.join(log_dir, "config.yml"), "w") as f: 
         f.write(cfg_text)
 
     training_args = TrainingArguments(output_dir=log_dir,
-                              num_train_steps=cfg["train_steps"],
+                              max_steps=cfg["train_steps"],
                               per_device_train_batch_size=cfg["batch_size_per_device"],
                               logging_steps=cfg["log_steps"],
                               save_steps=cfg["save_steps"],
                               remove_unused_columns=False,
                               max_grad_norm=1.0,
                               gradient_accumulation_steps=cfg["gradient_accumulation"],
+                              fp16=True, 
                               )
 
     Trainer(
