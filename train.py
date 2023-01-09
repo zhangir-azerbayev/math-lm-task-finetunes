@@ -87,7 +87,6 @@ def main():
     log_dir = os.path.join(cfg["log_dir"], cfg["experiment_name"])
 
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_load_path"])
-    tokenizer.add_special_tokens({"eos_token": "<|endoftext|>"})
     tokenizer.pad_token = tokenizer.eos_token
 
     model = AutoModelForCausalLM.from_pretrained(cfg["model_load_path"])
