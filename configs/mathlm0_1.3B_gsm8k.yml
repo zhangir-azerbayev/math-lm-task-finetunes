@@ -1,10 +1,10 @@
 # For fine-tuning on my (Yale LILY) lab server
-experiment_name: mathlm0-1.3B-math
-task: "math"
+experiment_name: mathlm0-1.3B-gsm8k
+task: "gsm8k"
 model_load_path: "hoskinson-center/proofGPT-v0.1"
 log_dir: "runs"
 
-max_length: 2048
+max_length: 500
 
 lr: 2.e-5
 lr_schedule: "cosine"

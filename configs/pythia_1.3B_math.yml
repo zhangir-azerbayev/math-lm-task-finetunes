@@ -1,7 +1,7 @@
 # For fine-tuning on my (Yale LILY) lab server
-experiment_name: mathlm0-1.3B-math
+experiment_name: pythia-1.3B-math
 task: "math"
-model_load_path: "hoskinson-center/proofGPT-v0.1"
+model_load_path: "EleutherAI/pythia-1.3b"
 log_dir: "runs"
 
 max_length: 2048
